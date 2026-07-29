@@ -3,6 +3,7 @@ const User =  require("../models/user")
 const validate = require('../utils/validator');
 const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
+const redisClient = require("../config/redis");
 // const Submission = require("../models/submission")
 
 
@@ -18,9 +19,9 @@ const register = async (req,res)=>{
       req.body.role = 'user'
     //
     
-     const user =  await User.create(req.body);
-     const token =  jwt.sign({_id:user._id , emailId:emailId, role: user.role},process.env.JWT_KEY,{expiresIn: 60*60});
-     const reply = {
+    const user =  await User.create(req.body);
+    const token =  jwt.sign({_id:user._id , emailId:emailId, role: user.role},process.env.JWT_KEY,{expiresIn: 60*60});
+    const reply = {
         firstName: user.firstName,
         emailId: user.emailId,
         _id: user._id,
@@ -34,7 +35,7 @@ const register = async (req,res)=>{
     });
      res.status(201).json({
         user:reply,
-        message:"Loggin Successfully"
+        message:"Registered Successfully"
     })
     }
     catch(err){
@@ -72,13 +73,13 @@ const login = async (req,res)=>{
 
         const token =  jwt.sign({_id:user._id , emailId:emailId, role:user.role},process.env.JWT_KEY,{expiresIn: 60*60});
         res.cookie('token',token,{
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict"
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict"
     });
         res.status(201).json({
             user:reply,
-            message:"Loggin Successfully"
+            message:"Logged in Successfully"
         })
     }
     catch(err){
@@ -111,30 +112,46 @@ const logout = async(req,res)=>{
 }
 
 
-const adminRegister = async(req,res)=>{
-    try{
-        // validate the data;
-    //   if(req.result.role!='admin')
-    //     throw new Error("Invalid Credentials");  
-      validate(req.body); 
-      const {firstName, emailId, password}  = req.body;
+const adminRegister = async (req, res) => {
+    try {
 
-      req.body.password = await bcrypt.hash(password, 10);
-    //
-    
-     const user =  await User.create(req.body);
-     const token =  jwt.sign({_id:user._id , emailId:emailId, role:user.role},process.env.JWT_KEY,{expiresIn: 60*60});
-     res.cookie('token',token,{
-     httpOnly: true,
-     secure: process.env.NODE_ENV === "production",
-     sameSite: "strict"
-    });
-     res.status(201).send("User Registered Successfully");
+        // Validate the data
+        validate(req.body);
+
+        const { password } = req.body;
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const user = await User.create({
+            ...req.body,
+            password: hashedPassword,
+            role: "admin"
+        });
+
+        const token = jwt.sign(
+            {
+                _id: user._id,
+                emailId: user.emailId,
+                role: user.role
+            },
+            process.env.JWT_KEY,
+            {
+                expiresIn: 60 * 60
+            }
+        );
+
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict"
+        });
+
+        res.status(201).send("Admin Registered Successfully");
+
+    } catch (err) {
+        res.status(400).send("Error: " + err.message);
     }
-    catch(err){
-        res.status(400).send("Error: "+err);
-    }
-}
+};
 
 const deleteProfile = async(req,res)=>{
   

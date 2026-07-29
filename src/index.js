@@ -2,33 +2,45 @@ require("dotenv").config();
 
 const express = require("express");
 const connectDB = require("./config/db");
-
+const redisClient = require("./config/redis");
+const authRouter = require("./routes/userAuth");
+const cookieParser = require("cookie-parser");
+const testRoutes = require("./routes/test.routes");
+const problemRouter = require("./routes/problemCreator");
+const submitRouter = require("./routes/submission.routes");
 const app = express();
-const PORT = process.env.PORT;
 
-// Middleware
 app.use(express.json());
+app.use(cookieParser());
 
-// Test Route
-app.get("/", (req, res) => {
-    res.send("LeetML Backend Running ");
-});
 
-// Connect Database & Start Server
-async function startServer() {
+app.use("/test", testRoutes);
+app.use("/problem", problemRouter);
+app.use("/submission", submitRouter);
+
+// app.get("/", (req, res) => {
+//     res.send("LeetML Backend Running");
+// });
+
+app.use("/user", authRouter);
+
+const initializeConnection = async () => {
     try {
-        await connectDB();
-        console.log("MongoDB Connected");
 
-        app.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`);
+        await Promise.all([
+            connectDB(),
+            redisClient.connect()
+        ]);
+
+        console.log("MongoDB and Redis Connected");
+
+        app.listen(process.env.PORT, () => {
+            console.log(`Server listening on port ${process.env.PORT}`);
         });
 
-    } catch (error) {
-        console.error("Database Connection Failed");
-        console.error(error.message);
-        process.exit(1);
+    } catch (err) {
+        console.error("Connection Error:", err);
     }
-}
+};
 
-startServer();
+initializeConnection();
