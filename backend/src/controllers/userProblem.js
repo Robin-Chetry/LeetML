@@ -247,17 +247,81 @@ const getProblemById = async (req, res) => {
 
 const getAllProblem = async (req, res) => {
   try {
-    const getProblem = await Problem.find({}).select('_id title difficulty topic tags');
+    // 1. Read query parameters with defaults
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      difficulty,
+      topic,
+      sort = "_id",
+    } = req.query;
 
-    if (getProblem.length === 0) return res.status(404).json({ message: "Problem is Missing" });
+    // Convert string query parameters to numbers
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
 
-    res.status(200).json(getProblem);
+    // Validate page and limit values
+    if (
+      Number.isNaN(pageNumber) ||
+      Number.isNaN(limitNumber) ||
+      pageNumber < 1 ||
+      limitNumber < 1
+    ) {
+      return res.status(400).json({
+        message: "Invalid page or limit parameter. Values must be positive integers.",
+      });
+    }
+
+    // Whitelist allowed sort fields
+    const allowedSortFields = ["_id", "title", "difficulty", "topic"];
+    const sortField = allowedSortFields.includes(sort) ? sort : "_id";
+
+    // 2. Build dynamic filter object
+    const filter = {};
+
+    if (search) {
+      filter.title = {
+        $regex: search,
+        $options: "i",
+      };
+    }
+
+    if (difficulty) {
+      filter.difficulty = difficulty;
+    }
+
+    if (topic) {
+      filter.topic = topic;
+    }
+
+    // 3. Count total matching documents
+    const totalProblems = await Problem.countDocuments(filter);
+
+    // 4. Calculate total pages
+    const totalPages = Math.max(1, Math.ceil(totalProblems / limitNumber));
+
+    // 5. Query MongoDB (using .lean() for plain JS objects)
+    const getProblem = await Problem.find(filter)
+      .select("_id title difficulty topic tags")
+      .sort(sortField)
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber)
+      .lean();
+
+    // 6. Return standardized paginated response
+    return res.status(200).json({
+      problems: getProblem,
+      currentPage: pageNumber,
+      totalPages,
+      totalProblems,
+    });
   } catch (err) {
     console.error(err);
 
-    res.status(500).json({
+    return res.status(500).json({
       message: "Internal Server Error",
-      error: err.message
+      error: err.message,
     });
   }
 };

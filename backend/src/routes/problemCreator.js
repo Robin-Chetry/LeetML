@@ -32,10 +32,10 @@ problemRouter.delete("/delete/:id", adminMiddleware, deleteProblem);
 // ==========================
 
 // Get all problems
-problemRouter.get("/problems", userMiddleware, getAllProblem);
+problemRouter.get("/", userMiddleware, getAllProblem);
 
 // Get a specific problem
-problemRouter.get("/problem/:id", userMiddleware, getProblemById);
+problemRouter.get("/:id", userMiddleware, getProblemById);
 
 // Get all solved problems of the logged-in user
 problemRouter.get(
