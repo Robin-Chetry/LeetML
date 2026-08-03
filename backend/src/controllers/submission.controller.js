@@ -13,26 +13,22 @@ const submitCode = async (req, res) => {
     if (!userId || !code || !problemId || !language)
       return res.status(400).send("Some field missing");
 
-    if (language === 'cpp')
-      language = 'c++';
+    if (language === "cpp") language = "c++";
 
-    // Fetch the problem from database and check existence
     const problem = await Problem.findById(problemId);
     if (!problem) {
       return res.status(404).json({ message: "Problem not found" });
     }
 
-    // Store submission in database first
     const submittedResult = await Submission.create({
       userId,
       problemId,
       code,
       language,
-      status: 'pending',
-      testCasesTotal: problem.hiddenTestCases.length
+      status: "pending",
+      testCasesTotal: problem.hiddenTestCases.length,
     });
 
-    // Execute code concurrently for all hidden testcases
     const languageId = getLanguageById(language);
     const executionResults = await Promise.allSettled(
       problem.hiddenTestCases.map((testcase) =>
@@ -40,7 +36,7 @@ const submitCode = async (req, res) => {
           sourceCode: code,
           languageId,
           stdin: testcase.input,
-          expectedOutput: testcase.output
+          expectedOutput: testcase.output,
         })
       )
     );
@@ -53,15 +49,14 @@ const submitCode = async (req, res) => {
       return {
         status: {
           id: 13,
-          description: "Internal Error"
+          description: "Internal Error",
         },
         stderr: result.reason?.message || "Execution failed",
         time: 0,
-        memory: 0
+        memory: 0,
       };
     });
 
-    // Process submission result
     let testCasesPassed = 0;
     let runtime = 0;
     let memory = 0;
@@ -72,15 +67,8 @@ const submitCode = async (req, res) => {
       if (test.status.id === 3) {
         testCasesPassed++;
 
-        runtime = Math.max(
-          runtime,
-          parseFloat(test.time || 0)
-        );
-
-        memory = Math.max(
-          memory,
-          test.memory || 0
-        );
+        runtime = Math.max(runtime, parseFloat(test.time || 0));
+        memory = Math.max(memory, test.memory || 0);
 
         continue;
       }
@@ -111,12 +99,12 @@ const submitCode = async (req, res) => {
         errorMessage =
           test.stderr ||
           test.compile_output ||
+          test.compileOutput ||
           test.message ||
           test.status?.description;
       }
     }
 
-    // Update Submission record in database
     submittedResult.status = status;
     submittedResult.testCasesPassed = testCasesPassed;
     submittedResult.errorMessage = errorMessage;
@@ -125,13 +113,12 @@ const submitCode = async (req, res) => {
 
     await submittedResult.save();
 
-    // Insert problemId into user's problemSolved list ONLY if status is 'accepted'
     if (status === "accepted" && !req.result.problemSolved.includes(problemId)) {
       req.result.problemSolved.push(problemId);
       await req.result.save();
     }
 
-    const accepted = (status === "accepted");
+    const accepted = status === "accepted";
     res.status(200).json({
       accepted,
       status,
@@ -139,9 +126,8 @@ const submitCode = async (req, res) => {
       passedTestCases: testCasesPassed,
       runtime,
       memory,
-      errorMessage
+      errorMessage,
     });
-
   } catch (err) {
     res.status(500).send("Internal Server Error " + err);
   }
@@ -152,29 +138,36 @@ const runCode = async (req, res) => {
     const userId = req.result._id;
     const problemId = req.params.id;
 
-    let { code, language } = req.body;
+    let { code, language, customInput } = req.body;
 
     if (!userId || !code || !problemId || !language)
       return res.status(400).send("Some field missing");
 
-    // Fetch the problem from database and check existence
     const problem = await Problem.findById(problemId);
     if (!problem) {
       return res.status(404).json({ message: "Problem not found" });
     }
 
-    if (language === 'cpp')
-      language = 'c++';
+    if (language === "cpp") language = "c++";
 
-    // Execute code concurrently for all visible testcases
     const languageId = getLanguageById(language);
+
+    const testCasesToRun = customInput?.trim()
+      ? [
+          {
+            input: customInput,
+            output: undefined,
+          },
+        ]
+      : problem.visibleTestCases;
+
     const executionResults = await Promise.allSettled(
-      problem.visibleTestCases.map((testcase) =>
+      testCasesToRun.map((testcase) =>
         executeCode({
           sourceCode: code,
           languageId,
           stdin: testcase.input,
-          expectedOutput: testcase.output
+          ...(testcase.output ? { expectedOutput: testcase.output } : {}),
         })
       )
     );
@@ -187,11 +180,11 @@ const runCode = async (req, res) => {
       return {
         status: {
           id: 13,
-          description: "Internal Error"
+          description: "Internal Error",
         },
         stderr: result.reason?.message || "Execution failed",
         time: 0,
-        memory: 0
+        memory: 0,
       };
     });
 
@@ -205,15 +198,8 @@ const runCode = async (req, res) => {
       if (test.status.id === 3) {
         testCasesPassed++;
 
-        runtime = Math.max(
-          runtime,
-          parseFloat(test.time || 0)
-        );
-
-        memory = Math.max(
-          memory,
-          test.memory || 0
-        );
+        runtime = Math.max(runtime, parseFloat(test.time || 0));
+        memory = Math.max(memory, test.memory || 0);
 
         continue;
       }
@@ -224,19 +210,36 @@ const runCode = async (req, res) => {
         errorMessage =
           test.stderr ||
           test.compile_output ||
+          test.compileOutput ||
           test.message ||
           test.status?.description;
       }
     }
 
-    res.status(200).json({
-      success: status,
-      testCases: testResult,
-      runtime,
-      memory,
-      errorMessage
+    const formattedTestCases = testCasesToRun.map((tc, index) => {
+      const execution = testResult[index];
+      const compileOutput =
+        execution.compile_output || execution.compileOutput || "";
+
+      return {
+        input: tc.input,
+        expectedOutput: tc.output || "",
+        stdout: execution.stdout || "",
+        stderr: execution.stderr || "",
+        compileOutput,
+        status: execution.status,
+        time: execution.time || 0,
+        memory: execution.memory || 0,
+      };
     });
 
+    res.status(200).json({
+      success: status,
+      testCases: formattedTestCases,
+      runtime,
+      memory,
+      errorMessage,
+    });
   } catch (err) {
     res.status(500).send("Internal Server Error " + err);
   }

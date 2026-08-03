@@ -103,10 +103,18 @@ const problemSchema = new Schema(
     },
 
     constraints: {
+      limits: [
+        {
+          type: String,
+          trim: true,
+        },
+      ],
+
       timeLimit: {
         type: Number,
         default: 2,
       },
+
       memoryLimit: {
         type: Number,
         default: 256,

@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "../pages/home/Home";
 import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
+import Problem from "../pages/problem/Problem";
 
 // Guards
 import ProtectedRoute from "../components/auth/ProtectedRoute";
@@ -24,6 +25,14 @@ function AppRoutes() {
             element={
               <ProtectedRoute>
                 <Home />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/problem/:id"
+            element={
+              <ProtectedRoute>
+                <Problem />
               </ProtectedRoute>
             }
           />

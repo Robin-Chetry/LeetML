@@ -7,3 +7,8 @@ export const getProblems = async (params = {}) => {
 
   return response.data;
 };
+
+export const getProblemById = async (id) => {
+  const response = await api.get(`/problem/${id}`);
+  return response.data;
+};
