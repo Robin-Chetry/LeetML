@@ -57,6 +57,10 @@ const submitCode = async (req, res) => {
       };
     });
 
+    console.log("===== TEST RESULT =====");
+    console.log(JSON.stringify(testResult, null, 2));
+    console.log("=======================");
+
     let testCasesPassed = 0;
     let runtime = 0;
     let memory = 0;
@@ -105,13 +109,16 @@ const submitCode = async (req, res) => {
       }
     }
 
+    console.log("Final status:", status);
     submittedResult.status = status;
     submittedResult.testCasesPassed = testCasesPassed;
     submittedResult.errorMessage = errorMessage;
     submittedResult.runtime = runtime;
     submittedResult.memory = memory;
 
+    console.log("Saving submission...");
     await submittedResult.save();
+    console.log("Submission saved.");
 
     if (status === "accepted" && !req.result.problemSolved.includes(problemId)) {
       req.result.problemSolved.push(problemId);
@@ -129,7 +136,10 @@ const submitCode = async (req, res) => {
       errorMessage,
     });
   } catch (err) {
-    res.status(500).send("Internal Server Error " + err);
+    console.error("SUBMIT ERROR:");
+    console.error(err);
+
+    res.status(500).send("Internal Server Error");
   }
 };
 
@@ -241,7 +251,10 @@ const runCode = async (req, res) => {
       errorMessage,
     });
   } catch (err) {
-    res.status(500).send("Internal Server Error " + err);
+    console.error("RUN ERROR:");
+    console.error(err);
+
+    res.status(500).send("Internal Server Error");
   }
 };
 

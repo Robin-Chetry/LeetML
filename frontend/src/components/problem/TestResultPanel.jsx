@@ -73,15 +73,10 @@ function TestResultPanel({
     ? submissionStatusMap[result?.status] ?? submissionStatusMap.error
     : null;
 
-  // Formatted Runtime and Memory
+  // Formatted Runtime (> 0 check filters out compile/execution zero states)
   const formattedRuntime =
-    result?.runtime != null && result?.runtime !== ""
+    result?.runtime > 0
       ? `${Number(result.runtime).toFixed(3)} s`
-      : "N/A";
-
-  const formattedMemory =
-    result?.memory != null && result?.memory !== ""
-      ? `${result.memory} KB`
       : "N/A";
 
   return (
@@ -121,10 +116,10 @@ function TestResultPanel({
         </div>
       </div>
 
-      {/* Dynamic Stats Grid (2 columns for Run, 3 columns for Submit) */}
+      {/* Dynamic Stats Grid (1 column for Run, 2 columns for Submit) */}
       <div
         className={`grid gap-4 ${
-          isSubmission ? "grid-cols-3" : "grid-cols-2"
+          isSubmission ? "grid-cols-2" : "grid-cols-1"
         }`}
       >
         <div className="rounded-lg border border-base-300 bg-base-200 p-4">
@@ -133,15 +128,6 @@ function TestResultPanel({
           </p>
           <p className="mt-1 text-2xl font-bold text-primary font-mono">
             {formattedRuntime}
-          </p>
-        </div>
-
-        <div className="rounded-lg border border-base-300 bg-base-200 p-4">
-          <p className="text-xs font-medium text-base-content/60 uppercase tracking-wider">
-            Memory
-          </p>
-          <p className="mt-1 text-2xl font-bold text-secondary font-mono">
-            {formattedMemory}
           </p>
         </div>
 
@@ -157,12 +143,26 @@ function TestResultPanel({
         )}
       </div>
 
-      {/* Global Error Console Banner */}
-      {result?.errorMessage && (
+      {/* Submission Error Details */}
+      {isSubmission && result?.errorMessage && (
+        <div className="rounded-lg border border-error/30 bg-error/5 p-4">
+          <h3 className="mb-2 text-sm font-semibold text-error">
+            {submissionStatus.title}
+          </h3>
+
+          <pre className="overflow-x-auto whitespace-pre-wrap rounded bg-neutral p-3 text-xs font-mono text-error">
+            {result.errorMessage}
+          </pre>
+        </div>
+      )}
+
+      {/* Run-Only Console Error Details */}
+      {!isSubmission && result?.errorMessage && (
         <div className="space-y-1">
           <h3 className="text-xs font-semibold text-error uppercase tracking-wider">
-            Execution Error
+            Error Details
           </h3>
+
           <pre className="rounded-lg bg-neutral text-error border border-error/30 p-3 font-mono text-xs whitespace-pre-wrap overflow-x-auto shadow-inner">
             {result.errorMessage}
           </pre>

@@ -34,8 +34,7 @@ problemRouter.delete("/delete/:id", adminMiddleware, deleteProblem);
 // Get all problems
 problemRouter.get("/", userMiddleware, getAllProblem);
 
-// Get a specific problem
-problemRouter.get("/:id", userMiddleware, getProblemById);
+
 
 // Get all solved problems of the logged-in user
 problemRouter.get(
@@ -50,5 +49,8 @@ problemRouter.get(
     userMiddleware,
     submittedProblem
 );
+
+// Get a specific problem
+problemRouter.get("/:id", userMiddleware, getProblemById); //keeping this at the last
 
 module.exports = problemRouter;

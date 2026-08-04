@@ -17,3 +17,11 @@ export const submitCode = async (problemId, payload) => {
 
   return response.data;
 };
+
+export const getProblemSubmissions = async (problemId) => {
+  const response = await axios.get(
+    `/problem/submittedProblem/${problemId}`
+  );
+
+  return response.data;
+};

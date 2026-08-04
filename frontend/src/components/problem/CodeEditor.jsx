@@ -4,11 +4,14 @@ import MonacoEditor from "./MonacoEditor";
 import EditorToolbar from "./EditorToolbar";
 import TestCasePanel from "./TestCasePanel";
 import TestResultPanel from "./TestResultPanel";
+import SubmissionHistoryPanel from "./SubmissionHistoryPanel";
+import SubmissionDetailsPanel from "./SubmissionDetailsPanel";
 import { runCode, submitCode } from "../../api/codeApi";
 
 const PANEL = {
   TESTCASES: "testcases",
   RESULT: "result",
+  SUBMISSIONS: "submissions",
 };
 
 function CodeEditor({ problemId, starterCode, visibleTestCases }) {
@@ -30,6 +33,9 @@ function CodeEditor({ problemId, starterCode, visibleTestCases }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState(null);
 
+  // Submission History State
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+
   useEffect(() => {
     setCode(starterCode);
     setActiveCase(0);
@@ -39,12 +45,14 @@ function CodeEditor({ problemId, starterCode, visibleTestCases }) {
     setRunResult(null);
     setSubmitResult(null);
     setBottomTab(PANEL.TESTCASES);
+    setSelectedSubmission(null);
   }, [starterCode]);
 
   const handleReset = () => {
     setCode(starterCode);
     setRunResult(null);
     setSubmitResult(null);
+    setSelectedSubmission(null);
     setBottomTab(PANEL.TESTCASES);
   };
 
@@ -89,9 +97,15 @@ function CodeEditor({ problemId, starterCode, visibleTestCases }) {
     }
   };
 
+  // Step 1: Handler to replace editor code with submission code
+  const handleUseSubmissionCode = (code) => {
+    setCode(code);
+    setSelectedSubmission(null);
+  };
+
   return (
     <Group orientation="vertical" className="h-full">
-      {/* Code Editor */}
+      {/* Code Editor Panel */}
       <Panel defaultSize={70} minSize={30}>
         <div className="flex h-full flex-col">
           <EditorToolbar
@@ -121,7 +135,7 @@ function CodeEditor({ problemId, starterCode, visibleTestCases }) {
       {/* Bottom Dock Panel */}
       <Panel defaultSize={30} minSize={15}>
         <div className="flex h-full flex-col bg-base-100">
-          {/* Main Tabs */}
+          {/* Navigation Tabs */}
           <div className="border-b border-base-300 px-3 pt-2">
             <div className="tabs tabs-bordered">
               <button
@@ -140,12 +154,20 @@ function CodeEditor({ problemId, starterCode, visibleTestCases }) {
               >
                 Test Result
               </button>
+              <button
+                className={`tab tab-xs font-semibold ${
+                  bottomTab === PANEL.SUBMISSIONS ? "tab-active" : ""
+                }`}
+                onClick={() => setBottomTab(PANEL.SUBMISSIONS)}
+              >
+                Submissions
+              </button>
             </div>
           </div>
 
-          {/* Panel View Switcher */}
+          {/* Dynamic Panel Content Switcher */}
           <div className="flex-1 min-h-0 overflow-y-auto">
-            {bottomTab === PANEL.TESTCASES ? (
+            {bottomTab === PANEL.TESTCASES && (
               <TestCasePanel
                 visibleTestCases={visibleTestCases}
                 activeCase={activeCase}
@@ -157,13 +179,32 @@ function CodeEditor({ problemId, starterCode, visibleTestCases }) {
                 customOutput={customOutput}
                 setCustomOutput={setCustomOutput}
               />
-            ) : (
+            )}
+
+            {bottomTab === PANEL.RESULT && (
               <TestResultPanel
                 runResult={runResult}
                 submitResult={submitResult}
                 isRunning={isRunning}
                 isSubmitting={isSubmitting}
               />
+            )}
+
+            {bottomTab === PANEL.SUBMISSIONS && (
+              selectedSubmission ? (
+                /* Step 2: Pass onUseCode handler */
+                <SubmissionDetailsPanel
+                  submission={selectedSubmission}
+                  onBack={() => setSelectedSubmission(null)}
+                  onUseCode={handleUseSubmissionCode}
+                />
+              ) : (
+                <SubmissionHistoryPanel
+                  problemId={problemId}
+                  selectedSubmission={selectedSubmission}
+                  setSelectedSubmission={setSelectedSubmission}
+                />
+              )
             )}
           </div>
         </div>
