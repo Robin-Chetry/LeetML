@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Group, Panel, Separator } from "react-resizable-panels";
-import { getProblemById } from "../../api/problemApi";
+import { getProblemById, getSubmissionById } from "../../api/problemApi";
 import ProblemHeader from "../../components/problem/ProblemHeader";
 import ProblemExamples from "../../components/problem/ProblemExamples";
 import ProblemConstraints from "../../components/problem/ProblemConstraints";
@@ -9,24 +9,42 @@ import CodeEditor from "../../components/problem/CodeEditor";
 
 function Problem() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const submissionId = searchParams.get("submission");
+
   const [problemData, setProblemData] = useState(null);
+  const [initialCode, setInitialCode] = useState("");
+  const [initialLanguage, setInitialLanguage] = useState("python");
+  const [loadingProblem, setLoadingProblem] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchProblem = async () => {
       try {
+        setLoadingProblem(true);
+
         const data = await getProblemById(id);
         setProblemData(data);
+        setInitialCode(data.starterCode);
+        setInitialLanguage("python");
+
+        if (submissionId) {
+          const submission = await getSubmissionById(submissionId);
+          setInitialCode(submission.code);
+          setInitialLanguage(submission.language);
+        }
       } catch (err) {
-        console.error("Error fetching problem:", err);
+        console.error(err);
         setError("Failed to load problem.");
+      } finally {
+        setLoadingProblem(false);
       }
     };
 
     if (id) {
       fetchProblem();
     }
-  }, [id]);
+  }, [id, submissionId]);
 
   if (error) {
     return (
@@ -36,7 +54,7 @@ function Problem() {
     );
   }
 
-  if (!problemData) {
+  if (loadingProblem) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <span className="loading loading-spinner loading-lg text-primary"></span>
@@ -62,6 +80,8 @@ function Problem() {
         <CodeEditor
           problemId={id}
           starterCode={problemData.starterCode}
+          initialCode={initialCode}
+          initialLanguage={initialLanguage}
           visibleTestCases={problemData.visibleTestCases}
         />
       </Panel>

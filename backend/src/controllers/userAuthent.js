@@ -6,6 +6,28 @@ const jwt = require('jsonwebtoken');
 const redisClient = require("../config/redis");
 // const Submission = require("../models/submission")
 
+const getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.result._id)
+      .select("-password -__v");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json(user);
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+};
+
 
 const register = async (req,res)=>{
     
@@ -175,4 +197,4 @@ const deleteProfile = async(req,res)=>{
 }
 
 
-module.exports = {register, login,logout,adminRegister,deleteProfile};
+module.exports = {register, login,logout,adminRegister,deleteProfile,getProfile};

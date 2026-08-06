@@ -13,7 +13,11 @@ const {
     getAllProblem,
     getSolvedProblemsByUser,
     submittedProblem,
+    getUserSubmissions,
+    getSubmissionById,
+    getProfileActivity
 } = require("../controllers/userProblem");
+
 // ==========================
 // Admin Routes
 // ==========================
@@ -34,13 +38,18 @@ problemRouter.delete("/delete/:id", adminMiddleware, deleteProblem);
 // Get all problems
 problemRouter.get("/", userMiddleware, getAllProblem);
 
-
-
 // Get all solved problems of the logged-in user
 problemRouter.get(
     "/problemSolvedByUser",
     userMiddleware,
     getSolvedProblemsByUser
+);
+
+// Get all submissions of the logged-in user
+problemRouter.get(
+    "/mySubmissions",
+    userMiddleware,
+    getUserSubmissions
 );
 
 // Get submitted solution(s) of the logged-in user for a specific problem
@@ -50,7 +59,19 @@ problemRouter.get(
     submittedProblem
 );
 
+problemRouter.get(
+  "/submission/:submissionId",
+  userMiddleware,
+  getSubmissionById
+);
+
+problemRouter.get(
+  "/profileActivity",
+  userMiddleware,
+  getProfileActivity
+);
+
 // Get a specific problem
-problemRouter.get("/:id", userMiddleware, getProblemById); //keeping this at the last
+problemRouter.get("/:id", userMiddleware, getProblemById); // keeping this at the last
 
 module.exports = problemRouter;

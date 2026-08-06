@@ -1,11 +1,4 @@
-import { useSelector } from "react-redux";
-
-function Pagination({ setFilters }) {
-  // Extract pagination values directly from Redux
-  const { currentPage, totalPages } = useSelector(
-    (state) => state.problem
-  );
-
+function Pagination({ currentPage, totalPages, onPageChange }) {
   // Hide pagination entirely if there is 1 or 0 pages
   if (totalPages <= 1) {
     return null;
@@ -13,12 +6,9 @@ function Pagination({ setFilters }) {
 
   // Safely change pages
   const changePage = (page) => {
-    if (typeof page !== "number" || page < 1 || page > totalPages) return;
+    if (page < 1 || page > totalPages) return;
 
-    setFilters((prev) => ({
-      ...prev,
-      page,
-    }));
+    onPageChange(page);
   };
 
   // Smart page calculation algorithm (LeetCode / GitHub style truncation)
@@ -54,7 +44,6 @@ function Pagination({ setFilters }) {
   return (
     <div className="flex justify-center mt-8 mb-10">
       <div className="join">
-
         {/* Previous Button */}
         <button
           className="join-item btn"
@@ -94,7 +83,6 @@ function Pagination({ setFilters }) {
         >
           Next
         </button>
-
       </div>
     </div>
   );

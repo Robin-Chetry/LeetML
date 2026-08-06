@@ -4,6 +4,14 @@ const Problem = require("../models/problem");
 const User = require("../models/user");
 const Submission = require("../models/submission");
 
+
+const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
+const timezone = require("dayjs/plugin/timezone");
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 const createProblem = async (req, res) => {
   const {
     title,
@@ -366,6 +374,165 @@ const submittedProblem = async (req, res) => {
   }
 };
 
+const getUserSubmissions = async (req, res) => {
+  try {
+    const userId = req.result._id;
+
+    const {
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
+
+    const totalSubmissions = await Submission.countDocuments({
+      userId,
+    });
+
+    const totalPages = Math.max(
+      1,
+      Math.ceil(totalSubmissions / limitNumber)
+    );
+
+    const submissions = await Submission.find({ userId })
+      .populate("problemId", "title difficulty topic")
+      .sort({ createdAt: -1 })
+      .skip((pageNumber - 1) * limitNumber)
+      .limit(limitNumber);
+
+    res.status(200).json({
+      submissions,
+      currentPage: pageNumber,
+      totalPages,
+      totalSubmissions,
+    });
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: err.message,
+    });
+  }
+};
+
+const getSubmissionById = async (req, res) => {
+  try {
+    const { submissionId } = req.params;
+    const userId = req.result._id;
+
+    const submission = await Submission.findOne({
+      _id: submissionId,
+      userId,
+    });
+
+    if (!submission) {
+      return res.status(404).json({
+        message: "Submission not found",
+      });
+    }
+
+    res.status(200).json(submission);
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: err.message,
+    });
+  }
+};
+
+const getProfileActivity = async (req, res) => {
+  try {
+    const userId = req.result._id;
+
+    const lastSubmission = await Submission.findOne({
+      userId,
+    })
+      .populate("problemId", "title difficulty topic")
+      .sort({ createdAt: -1 });
+
+    const recentActivity = await Submission.find({
+      userId,
+    })
+      .populate("problemId", "title difficulty topic")
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    const startOfToday = dayjs()
+      .tz("Asia/Kolkata")
+      .startOf("day")
+      .toDate();
+
+    const endOfToday = dayjs()
+      .tz("Asia/Kolkata")
+      .endOf("day")
+      .toDate();
+
+    const acceptedToday = await Submission.countDocuments({
+      userId,
+      status: "accepted",
+      createdAt: {
+        $gte: startOfToday,
+        $lte: endOfToday,
+      },
+    });
+
+    const solvedProblems = await Submission.distinct("problemId", {
+      userId,
+      status: "accepted",
+    });
+
+    const acceptedSubmissions = await Submission.find({
+      userId,
+      status: "accepted",
+    }).select("createdAt").sort({ createdAt: -1 });
+
+    // Step 2: Create a set of unique dates (YYYY-MM-DD)
+    const acceptedDays = new Set(
+      acceptedSubmissions.map((submission) =>
+        dayjs(submission.createdAt)
+          .tz("Asia/Kolkata")
+          .format("YYYY-MM-DD")
+      )
+    );
+
+    // Step 3: Calculate the streak
+    let currentStreak = 0;
+    let currentDay = dayjs().tz("Asia/Kolkata");
+
+    // If today's submission doesn't exist, start checking from yesterday.
+    if (!acceptedDays.has(currentDay.format("YYYY-MM-DD"))) {
+      currentDay = currentDay.subtract(1, "day");
+    }
+
+    while (acceptedDays.has(currentDay.format("YYYY-MM-DD"))) {
+      currentStreak++;
+      currentDay = currentDay.subtract(1, "day");
+    }
+
+    // Step 4: Return response
+    res.status(200).json({
+      acceptedToday,
+      problemsSolved: solvedProblems.length,
+      currentStreak,
+      lastSubmission,
+      recentActivity,
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: err.message,
+    });
+  }
+};
+
 module.exports = {
   createProblem,
   updateProblem,
@@ -373,5 +540,8 @@ module.exports = {
   getProblemById,
   getAllProblem,
   getSolvedProblemsByUser,
-  submittedProblem
+  submittedProblem,
+  getUserSubmissions,
+  getSubmissionById,
+  getProfileActivity
 };

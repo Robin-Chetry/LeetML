@@ -14,9 +14,15 @@ const PANEL = {
   SUBMISSIONS: "submissions",
 };
 
-function CodeEditor({ problemId, starterCode, visibleTestCases }) {
-  const [language, setLanguage] = useState("python");
-  const [code, setCode] = useState(starterCode);
+function CodeEditor({
+  problemId,
+  starterCode,
+  initialCode,
+  initialLanguage,
+  visibleTestCases,
+}) {
+  const [language, setLanguage] = useState(initialLanguage);
+  const [code, setCode] = useState(initialCode);
 
   // Top-Level Bottom Panel Tab State
   const [bottomTab, setBottomTab] = useState(PANEL.TESTCASES);
@@ -37,7 +43,8 @@ function CodeEditor({ problemId, starterCode, visibleTestCases }) {
   const [selectedSubmission, setSelectedSubmission] = useState(null);
 
   useEffect(() => {
-    setCode(starterCode);
+    setCode(initialCode);
+    setLanguage(initialLanguage);
     setActiveCase(0);
     setIsCustomCase(false);
     setCustomInput("");
@@ -46,10 +53,11 @@ function CodeEditor({ problemId, starterCode, visibleTestCases }) {
     setSubmitResult(null);
     setBottomTab(PANEL.TESTCASES);
     setSelectedSubmission(null);
-  }, [starterCode]);
+  }, [initialCode, initialLanguage]);
 
   const handleReset = () => {
-    setCode(starterCode);
+    setCode(initialCode);
+    setLanguage(initialLanguage);
     setRunResult(null);
     setSubmitResult(null);
     setSelectedSubmission(null);
@@ -97,9 +105,9 @@ function CodeEditor({ problemId, starterCode, visibleTestCases }) {
     }
   };
 
-  // Step 1: Handler to replace editor code with submission code
-  const handleUseSubmissionCode = (code) => {
-    setCode(code);
+  // Handler to replace editor code with submission code
+  const handleUseSubmissionCode = (submissionCode) => {
+    setCode(submissionCode);
     setSelectedSubmission(null);
   };
 
@@ -192,7 +200,6 @@ function CodeEditor({ problemId, starterCode, visibleTestCases }) {
 
             {bottomTab === PANEL.SUBMISSIONS && (
               selectedSubmission ? (
-                /* Step 2: Pass onUseCode handler */
                 <SubmissionDetailsPanel
                   submission={selectedSubmission}
                   onBack={() => setSelectedSubmission(null)}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import WelcomeSection from "../../components/home/WelcomeSection";
 import StatsCards from "../../components/home/StatsCards";
 import ProblemFilters from "../../components/home/ProblemFilters";
@@ -10,6 +10,7 @@ import { fetchDashboardStats } from "../../redux/dashboardSlice";
 
 function Home() {
   const dispatch = useDispatch();
+  const { totalPages } = useSelector((state) => state.problem);
 
   // Instant filters state
   const [filters, setFilters] = useState({
@@ -62,7 +63,16 @@ function Home() {
       <StatsCards />
       <ProblemFilters filters={filters} setFilters={setFilters} />
       <ProblemTable />
-      <Pagination setFilters={setFilters} />
+      <Pagination
+        currentPage={filters.page}
+        totalPages={totalPages}
+        onPageChange={(page) =>
+          setFilters((prev) => ({
+            ...prev,
+            page,
+          }))
+        }
+      />
     </div>
   );
 }

@@ -5,6 +5,8 @@ import Home from "../pages/home/Home";
 import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
 import Problem from "../pages/problem/Problem";
+import Profile from "../pages/profile/Profile";
+import MySubmissions from "../pages/submissions/MySubmissions";
 
 // Guards
 import ProtectedRoute from "../components/auth/ProtectedRoute";
@@ -28,6 +30,25 @@ function AppRoutes() {
               </ProtectedRoute>
             }
           />
+
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/submissions"
+            element={
+              <ProtectedRoute>
+                <MySubmissions />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/problem/:id"
             element={
